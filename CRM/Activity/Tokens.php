@@ -67,8 +67,10 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
   public function checkActive(\Civi\Token\TokenProcessor $processor) {
     // Extracted from scheduled-reminders code. See the class description.
     return
-      !empty($processor->context['actionMapping'])
-      && $processor->context['actionMapping']->getEntity() === 'civicrm_activity';
+      (!empty($processor->context['actionMapping'])
+      && $processor->context['actionMapping']->getEntity() === 'civicrm_activity') ||
+      (!empty($processor->context['controller'])
+      && $processor->context['controller'] == 'CRM_Activity_Form_Task_PDFLetterCommon');
   }
 
   /**
