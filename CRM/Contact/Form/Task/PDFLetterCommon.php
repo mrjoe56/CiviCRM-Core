@@ -34,7 +34,7 @@
 /**
  * This class provides the common functionality for creating PDF letter for one or a group of contact ids.
  */
-class CRM_Contact_Form_Task_PDFLetterCommon {
+class CRM_Contact_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLetterCommon {
 
   protected static $tokenCategories;
 

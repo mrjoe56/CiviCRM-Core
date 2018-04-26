@@ -52,10 +52,7 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFLe
     list($formValues, $categories, $html_message, $messageToken, $returnProperties)
       = self::processMessageTemplate($formValues);
 
-    $tp = new TokenProcessor(\Civi::dispatcher(), array(
-      'controller' => __CLASS__,
-      'smarty' => FALSE,
-    ));
+    $tp = self::createTokenProcessor();
     $tp->addMessage('body_html', $html_message, 'text/html');
 
     $activities = civicrm_api3('Activity', 'get', array(
@@ -73,44 +70,33 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFLe
       }
     }
     $tp->evaluate();
-    foreach ($tp->getRows() as $row) {
-      $html[] = $row->render('body_html');
-    }
 
-    // If we were to record a PDF activity, who would we record it against??
-    // probably Target
-    // self::createActivities($form, $html_message, $contactIDs, $formValues['subject'], CRM_Utils_Array::value('campaign_id', $formValues));
-
-    if (!empty($formValues['is_unit_test'])) {
-      return $html;
-    }
-
-    if (!empty($html)) {
-      $type = $formValues['document_type'];
-
-      if ($type == 'pdf') {
-        CRM_Utils_PDF_Utils::html2pdf($html, "CiviLetter.pdf", FALSE, $formValues);
-      }
-      else {
-        CRM_Utils_PDF_Document::html2doc($html, "CiviLetter.$type", $formValues);
-      }
-    }
+    self::renderFromRows($tp->getRows(), 'body_html', $formValues);
 
     $form->postProcessHook();
 
     CRM_Utils_System::civiExit(1);
   }
 
-  public function listTokens() {
-    $tp = new TokenProcessor(\Civi::dispatcher(), array(
-      'controller' => __CLASS__,
+  // Can probably push these into something shared, but leave here
+  // until use of new token processor is verified
+
+  /**
+   * Create a token processor
+   */
+  public function createTokenProcessor() {
+    return new TokenProcessor(\Civi::dispatcher(), array(
+      'controller' => get_class($this),
       'smarty' => FALSE,
     ));
-    $list = array();
-    foreach ($tp->getTokens() as $token => $values) {
-      $list['{' . $token . '}'] = $values['label'];
-    }
-    return $list;
+  }
+
+  /**
+   * List the available tokens
+   * @return array of token name => label
+   */
+  public function listTokens() {
+    return self::createTokenProcessor()->listTokens();
   }
 
 }
