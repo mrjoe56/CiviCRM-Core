@@ -104,16 +104,31 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
    * @inheritDoc
    */
   public function evaluateToken(\Civi\Token\TokenRow $row, $entity, $field, $prefetch = NULL) {
+    // maps token name to api field
+    $mapping = array(
+      'activity_id' => 'id',
+    );
+
     $actionSearchResult = $row->context['actionSearchResult'];
 
     if (in_array($field, array('activity_date_time'))) {
       $row->tokens($entity, $field, \CRM_Utils_Date::customFormat($actionSearchResult->$field));
     }
+    elseif (isset($mapping[$field]) AND (isset($actionSearchResult->{$mapping[$field]}))) {
+      $row->tokens($entity, $field, $actionSearchResult->{$mapping[$field]});
+    }
+    elseif (in_array($field, array('activity_type'))) {
+      $activityTypes = CRM_Core_OptionGroup::values('activity_type');
+      $row->tokens($entity, $field, $activityTypes[$actionSearchResult->activity_type_id]);
+    }
+    elseif ((strpos($field, 'custom_') === 0) AND ($cfID = \CRM_Core_BAO_CustomField::getKeyID($field))) {
+      $row->customToken($entity, $cfID, $actionSearchResult->id);
+    }
     elseif (isset($actionSearchResult->$field)) {
       $row->tokens($entity, $field, $actionSearchResult->$field);
     }
     elseif ($cfID = \CRM_Core_BAO_CustomField::getKeyID($field)) {
-      $row->customToken($entity, $cfID, $actionSearchResult->entity_id);
+      $row->customToken($entity, $cfID, $actionSearchResult->id);
     }
     else {
       $row->tokens($entity, $field, '');
