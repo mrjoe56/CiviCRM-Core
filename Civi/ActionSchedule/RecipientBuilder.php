@@ -531,6 +531,9 @@ WHERE      $group.id = {$groupId}
    * @return \CRM_Utils_SQL_Select
    */
   protected function prepareRepetitionEndFilter($dateField) {
+    if (!$dateField && $this->actionSchedule->absolute_date) {
+      $dateField = '"' . $this->actionSchedule->absolute_date . '"';
+    }
     $repeatEventDateExpr = ($this->actionSchedule->end_action == 'before' ? 'DATE_SUB' : 'DATE_ADD')
       . "({$dateField}, INTERVAL {$this->actionSchedule->end_frequency_interval} {$this->actionSchedule->end_frequency_unit})";
 
