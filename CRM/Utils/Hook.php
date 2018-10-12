@@ -603,7 +603,8 @@ abstract class CRM_Utils_Hook {
    *
    * @param array $themes
    *   List of themes, keyed by name.
-   * @return mixed
+   * @return null
+   *   the return value is ignored
    */
   public static function themes(&$themes) {
     return self::singleton()->invoke(array('themes'), $themes,
