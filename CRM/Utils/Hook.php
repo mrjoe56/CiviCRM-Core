@@ -613,6 +613,26 @@ abstract class CRM_Utils_Hook {
   }
 
   /**
+   * The activeTheme hook determines which theme is active.
+   *
+   * @param string $theme
+   *   The identifier for the theme. Alterable.
+   *   Ex: 'greenwich'.
+   * @param array $context
+   *   Information about the current page-request. Includes some mix of:
+   *   - page: the relative path of the current Civi page (Ex: 'civicrm/dashboard').
+   *   - themes: an instance of the Civi\Core\Themes service.
+   * @return null
+   *   the return value is ignored
+   */
+  public static function activeTheme(&$theme, $context) {
+    return self::singleton()->invoke(array('theme', 'context'), $theme, $context,
+      self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject,
+      'civicrm_activeTheme'
+    );
+  }
+
+  /**
    * This hook is called for declaring managed entities via API.
    *
    * @param array $entities

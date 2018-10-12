@@ -92,6 +92,11 @@ class Themes {
         $themeKey = self::DEFAULT_THEME;
       }
 
+      \CRM_Utils_Hook::activeTheme($themeKey, [
+        'themes' => $this,
+        'page' => \CRM_Utils_Array::value(\CRM_Core_Config::singleton()->userFrameworkURLVar, $_GET),
+      ]);
+
       $themes = $this->getAll();
       $this->activeThemeKey = isset($themes[$themeKey]) ? $themeKey : self::DEFAULT_THEME;
     }
