@@ -139,15 +139,15 @@ class Themes {
    * or "_newyork_base_" are omitted.
    *
    * @return array
-   *   List of themes, keyed by name. Same format as CRM_Utils_Hook::themes(),
-   *   but any default values are filled in.
+   *   List of themes.
+   *   Ex: ['greenwich' => 'Greenwich', 'shoreditch' => 'Shoreditch'].
    * @see CRM_Utils_Hook::themes
    */
   public function getAvailable() {
     $result = array();
     foreach ($this->getAll() as $key => $theme) {
       if ($key{0} !== '_') {
-        $result[$key] = $theme;
+        $result[$key] = $theme['title'];
       }
     }
     return $result;
@@ -208,7 +208,7 @@ class Themes {
     $themes = array(
       'default' => array(
         'ext' => 'civicrm',
-        'title' => 'System Default',
+        'title' => ts('Automatic'),
         'help' => ts('Determine a system default automatically'),
         // This is an alias. url_callback, search_order don't matter.
       ),
@@ -219,8 +219,8 @@ class Themes {
       ),
       'none' => array(
         'ext' => 'civicrm',
-        'title' => 'Empty Theme',
-        'help' => ts('Disable CiviCRM built-in CSS libraries.'),
+        'title' => ts('None (Unstyled)'),
+        'help' => ts('Disable CiviCRM\'s built-in CSS files.'),
         'search_order' => array('none', self::FALLBACK_THEME),
         'excludes' => array(
           "css/civicrm.css",

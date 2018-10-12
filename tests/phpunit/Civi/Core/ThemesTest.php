@@ -95,7 +95,7 @@ class ThemesTest extends \CiviUnitTestCase {
     $cases[] = array(
       $hookJudy,
       'none',
-      'Empty Theme',
+      'None (Unstyled)',
       array(
         'civicrm-css/civicrm.css' => array(),
         'civicrm-css/joomla.css' => array("$civicrmBaseUrl/css/joomla.css"),
