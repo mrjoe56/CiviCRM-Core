@@ -72,7 +72,7 @@ class Themes {
    * @param \CRM_Utils_Cache_Interface $cache
    */
   public function __construct($cache = NULL) {
-    $this->cache = $cache ? $cache : Civi::cache();;
+    $this->cache = $cache ? $cache : Civi::cache('long');
   }
 
   /**
