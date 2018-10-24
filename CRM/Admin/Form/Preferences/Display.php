@@ -41,6 +41,8 @@ class CRM_Admin_Form_Preferences_Display extends CRM_Admin_Form_Preferences {
     'contact_smart_group_display' => CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
     'advanced_search_options' => CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
     'preserve_activity_tab_filter' => CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
+    'theme_backend' => CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
+    'theme_frontend' => CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
   );
 
   public function preProcess() {
