@@ -705,7 +705,7 @@ class CRM_Utils_System_Drupal8 extends CRM_Utils_System_DrupalBase {
    * @inheritDoc
    */
   public function languageNegotiationURL($url, $addLanguagePart = TRUE, $removeLanguagePart = FALSE) {
-    if (empty($url)) {
+    if (empty($url) || !$addLanguagePart) {
       return $url;
     }
 
