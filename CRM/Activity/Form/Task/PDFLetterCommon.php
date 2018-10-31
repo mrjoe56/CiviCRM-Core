@@ -63,6 +63,7 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFLe
       $activity = CRM_Utils_Array::value($activityId, $activities['values']);
       if ($activity) {
         // NB - must have 'contactId' context otherwise evaluate() blows up
+        // when evaluate is fixed, can remove source_contact_id below
         $tp->addRow()
           ->context('activityId', $activityId)
           ->context('actionSearchResult', (object) $activity)
@@ -78,9 +79,6 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFLe
     CRM_Utils_System::civiExit(1);
   }
 
-  // Can probably push these into something shared, but leave here
-  // until use of new token processor is verified
-
   /**
    * Create a token processor
    */
@@ -88,8 +86,12 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFLe
     return new TokenProcessor(\Civi::dispatcher(), array(
       'controller' => get_class($this),
       'smarty' => FALSE,
+      'schema' => ['activityId'],
     ));
   }
+
+  // Can probably push this into something shared, but leave here
+  // until use of new token processor is verified
 
   /**
    * List the available tokens
