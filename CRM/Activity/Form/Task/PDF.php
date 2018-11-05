@@ -72,8 +72,7 @@ class CRM_Activity_Form_Task_PDF extends CRM_Activity_Form_Task {
    * @return array
    */
   public function listTokens() {
-    return CRM_Core_SelectValues::contactTokens() +
-    CRM_Activity_Form_Task_PDFLetterCommon::listTokens();
+    return CRM_Activity_Form_Task_PDFLetterCommon::listTokens();
   }
 
 }

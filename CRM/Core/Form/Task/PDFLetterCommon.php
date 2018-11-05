@@ -371,4 +371,14 @@ class CRM_Core_Form_Task_PDFLetterCommon {
     }
   }
 
+  /**
+   * List the available tokens
+   * @return array of token name => label
+   */
+  public function listTokens() {
+    $class = get_called_class();
+    if (method_exists($class, 'createTokenProcessor')) {
+      return $class::createTokenProcessor()->listTokens();
+    }
+  }
 }

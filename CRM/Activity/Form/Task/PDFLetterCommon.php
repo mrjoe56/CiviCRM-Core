@@ -32,7 +32,7 @@ use Civi\Token\TokenProcessor;
  * activities.
  *
  */
-class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLetterCommon  {
+class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLetterCommon {
 
   public static function postProcess(&$form) {
     self::postProcessActivities($form, $form->_activityHolderIds);
@@ -54,20 +54,8 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLette
     $tp = self::createTokenProcessor();
     $tp->addMessage('body_html', $html_message, 'text/html');
 
-    $activities = civicrm_api3('Activity', 'get', array(
-      'id' => array('IN' => $activityIds),
-    ));
-
     foreach ($activityIds as $activityId) {
-      $activity = CRM_Utils_Array::value($activityId, $activities['values']);
-      if ($activity) {
-        // NB - must have 'contactId' context otherwise evaluate() blows up
-        // when evaluate is fixed, can remove source_contact_id below
-        $tp->addRow()
-          ->context('activityId', $activityId)
-          ->context('actionSearchResult', (object) $activity)
-          ->context('contactId', $activity['source_contact_id']);
-      }
+      $tp->addRow()->context('activityId', $activityId);
     }
     $tp->evaluate();
 
@@ -83,21 +71,10 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLette
    */
   public function createTokenProcessor() {
     return new TokenProcessor(\Civi::dispatcher(), array(
-      'controller' => get_class($this),
+      'controller' => get_class(),
       'smarty' => FALSE,
       'schema' => ['activityId'],
     ));
-  }
-
-  // Can probably push this into something shared, but leave here
-  // until use of new token processor is verified
-
-  /**
-   * List the available tokens
-   * @return array of token name => label
-   */
-  public function listTokens() {
-    return self::createTokenProcessor()->listTokens();
   }
 
 }

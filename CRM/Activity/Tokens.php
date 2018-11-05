@@ -49,15 +49,28 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
    * CRM_Activity_Tokens constructor.
    */
   public function __construct() {
+    $tokens = [];
+    foreach (CRM_Core_SelectValues::contactTokens() as $label => $name) {
+      $match = [];
+      if (preg_match('/{contact\.(.*)}/', $label, $match)) {
+        $tokens['source_' . $match[1]] = "(Source) " . $name;
+        $tokens['target_N_' . $match[1]] = "(Target N) " . $name;
+        $tokens['assignee_N_' . $match[1]] = "(Assignee N) " . $name;
+      }
+    }
     parent::__construct('activity', array_merge(
       array(
         'activity_id' => ts('Activity ID'),
         'activity_type' => ts('Activity Type'),
+        'status' => ts('Activity Status'),
         'subject' => ts('Activity Subject'),
         'details' => ts('Activity Details'),
         'activity_date_time' => ts('Activity Date-Time'),
+        'targets_count' => ts('Count of Activity Targets'),
+        'assignees_count' => ts('Count of Activity Assignees'),
       ),
-      CRM_Utils_Token::getCustomFieldTokens('Activity')
+      CRM_Utils_Token::getCustomFieldTokens('Activity'),
+      $tokens
     ));
   }
 
@@ -71,6 +84,32 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
       (!empty($processor->context['actionMapping'])
       && $processor->context['actionMapping']->getEntity() === 'civicrm_activity');
   }
+
+  /**
+   * @inheritDoc
+   */
+  public function getActiveTokens(\Civi\Token\Event\TokenValueEvent $e) {
+    $messageTokens = $e->getTokenProcessor()->getMessageTokens();
+    if (!isset($messageTokens[$this->entity])) {
+      return NULL;
+    }
+
+    $activeTokens = [];
+    // if message token contains '_\d+_', then treat as '_N_'
+    foreach ($messageTokens[$this->entity] as $msgToken) {
+      if (array_key_exists($msgToken, $this->tokenNames)) {
+        $activeTokens[$msgToken] = 1;
+      }
+      else {
+        $altToken = preg_replace('/_\d+_/', '_N_', $msgToken);
+        if (array_key_exists($altToken, $this->tokenNames)) {
+          $activeTokens[$msgToken] = 1;
+        }
+      }
+    }
+    return array_keys($activeTokens);
+  }
+
 
   /**
    * @inheritDoc
@@ -102,32 +141,119 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
   /**
    * @inheritDoc
    */
+  public function prefetch(\Civi\Token\Event\TokenValueEvent $e) {
+    if (!empty($e->getTokenProcessor()->context['actionMapping'])) {
+      // Scheduled reminders provide results objects so don't prefetch
+      return NULL;
+    }
+
+    // Get the activities
+    foreach ($e->getRows() as $row) {
+      $activityIds[] = $row->context['activityId'];
+    }
+
+    $activities = civicrm_api3('Activity', 'get', array(
+      'id' => array('IN' => $activityIds),
+    ));
+    $prefetch['activity'] = $activities['values'];
+
+    // If we need ActivityContacts, load them
+    $messageTokens = $e->getTokenProcessor()->getMessageTokens();
+    $needContacts = FALSE;
+    foreach ($messageTokens[$this->entity] as $token) {
+      if (preg_match('/^source|target|assignee/', $token)) {
+        $needContacts = TRUE;
+        break;
+      }
+    }
+    if ($needContacts) {
+      $result = civicrm_api3('ActivityContact', 'get', [
+        'sequential' => 1,
+        'activity_id' => array('IN' => $activityIds),
+      ]);
+      $contactIds = [];
+      $types = [ '1' => 'assignee', '2' => 'source', '3' => 'target'];
+      foreach ($result['values'] as $ac) {
+        if ($ac['record_type_id'] == 2) {
+          $prefetch['activityContact'][$ac['activity_id']][$types[$ac['record_type_id']]] = $ac['contact_id'];
+        }
+        else {
+          $prefetch['activityContact'][$ac['activity_id']][$types[$ac['record_type_id']]][] = $ac['contact_id'];
+        }
+        $contactIds[$ac['contact_id']] = 1;
+      }
+      $result = civicrm_api3('Contact', 'get', [
+        'id' => array('IN' => array_keys($contactIds)),
+      ]);
+      $prefetch['contact'] = $result['values'];
+    }
+    return $prefetch;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public function evaluateToken(\Civi\Token\TokenRow $row, $entity, $field, $prefetch = NULL) {
     // maps token name to api field
     $mapping = array(
       'activity_id' => 'id',
     );
 
-    $actionSearchResult = $row->context['actionSearchResult'];
+    if (!empty($row->context['actionSearchResult'])) {
+      // For scheduled reminders
+      $activity = $row->context['actionSearchResult'];
+    }
+    else {
+      $activity = (object) $prefetch['activity'][$row->context['activityId']];
+    }
 
     if (in_array($field, array('activity_date_time'))) {
-      $row->tokens($entity, $field, \CRM_Utils_Date::customFormat($actionSearchResult->$field));
+      $row->tokens($entity, $field, \CRM_Utils_Date::customFormat($activity->$field));
     }
-    elseif (isset($mapping[$field]) AND (isset($actionSearchResult->{$mapping[$field]}))) {
-      $row->tokens($entity, $field, $actionSearchResult->{$mapping[$field]});
+    elseif (isset($mapping[$field]) AND (isset($activity->{$mapping[$field]}))) {
+      $row->tokens($entity, $field, $activity->{$mapping[$field]});
     }
     elseif (in_array($field, array('activity_type'))) {
-      $activityTypes = CRM_Core_OptionGroup::values('activity_type');
-      $row->tokens($entity, $field, $activityTypes[$actionSearchResult->activity_type_id]);
+      $activityTypes = \CRM_Core_OptionGroup::values('activity_type');
+      $row->tokens($entity, $field, $activityTypes[$activity->activity_type_id]);
     }
     elseif ((strpos($field, 'custom_') === 0) AND ($cfID = \CRM_Core_BAO_CustomField::getKeyID($field))) {
-      $row->customToken($entity, $cfID, $actionSearchResult->id);
+      $row->customToken($entity, $cfID, $activity->id);
     }
-    elseif (isset($actionSearchResult->$field)) {
-      $row->tokens($entity, $field, $actionSearchResult->$field);
+    elseif (isset($activity->$field)) {
+      $row->tokens($entity, $field, $activity->$field);
     }
     elseif ($cfID = \CRM_Core_BAO_CustomField::getKeyID($field)) {
-      $row->customToken($entity, $cfID, $actionSearchResult->id);
+      $row->customToken($entity, $cfID, $activity->id);
+    }
+    elseif (preg_match('/^(target|assignee|source)_/', $field, $match)) {
+      if ($match[1] == 'source') {
+        $fieldParts = explode('_', $field, 2);
+        $contactId = \CRM_Utils_Array::value($fieldParts[0], $prefetch['activityContact'][$activity->id]);
+        $wantedField = $fieldParts[1];
+      }
+      else {
+        $fieldParts = explode('_', $field, 3);
+        $contactIds = \CRM_Utils_Array::value($fieldParts[0], $prefetch['activityContact'][$activity->id]);
+        $selectedId = (int) $fieldParts[1] > 0 ? $fieldParts[1] - 1 : 0;
+        $contactId = \CRM_Utils_Array::value($selectedId, $contactIds);
+        $wantedField = $fieldParts[2];
+      }
+      $contact = \CRM_Utils_Array::value($contactId, $prefetch['contact']);
+      if (!$contact) {
+        $row->tokens($entity, $field, '');
+      }
+      else {
+        $contact = (object) $contact;
+        // This is OK for simple tokens, but would be better for this to be handled by
+        // CRM_Contact_Tokens ... but that doesn't exist yet.
+        $row->tokens($entity, $field, $contact->$wantedField);
+      }
+    }
+    elseif (preg_match('/^(targets|assignees)_count/', $field, $match)) {
+      $type = rtrim($match[1], 's');
+      $contacts = \CRM_Utils_Array::value($type, $prefetch['activityContact'][$activity->id], []);
+      $row->tokens($entity, $field, count($contacts));
     }
     else {
       $row->tokens($entity, $field, '');
