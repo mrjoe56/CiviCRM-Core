@@ -381,4 +381,5 @@ class CRM_Core_Form_Task_PDFLetterCommon {
       return $class::createTokenProcessor()->listTokens();
     }
   }
+
 }
