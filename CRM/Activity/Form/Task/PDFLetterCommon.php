@@ -34,10 +34,6 @@ use Civi\Token\TokenProcessor;
  */
 class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLetterCommon {
 
-  public static function postProcess(&$form) {
-    self::postProcessActivities($form, $form->_activityHolderIds);
-  }
-
   /**
    * Process the form after the input has been submitted and validated.
    * This uses the new token processor
@@ -47,7 +43,8 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLette
    *
    * @return void
    */
-  public static function postProcessActivities(&$form, $activityIds) {
+  public static function postProcess(&$form) {
+    $activityIds = $form->_activityHolderIds;
     $formValues = $form->controller->exportValues($form->getName());
     $html_message = self::processTemplate($formValues);
 
