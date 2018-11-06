@@ -59,7 +59,7 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
       }
     }
     parent::__construct('activity', array_merge(
-      array(
+      [
         'activity_id' => ts('Activity ID'),
         'activity_type' => ts('Activity Type'),
         'status' => ts('Activity Status'),
@@ -68,7 +68,7 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
         'activity_date_time' => ts('Activity Date-Time'),
         'targets_count' => ts('Count of Activity Targets'),
         'assignees_count' => ts('Count of Activity Assignees'),
-      ),
+      ],
       CRM_Utils_Token::getCustomFieldTokens('Activity'),
       $tokens
     ));
@@ -148,13 +148,11 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
     }
 
     // Get the activities
-    foreach ($e->getRows() as $row) {
-      $activityIds[] = $row->context['activityId'];
-    }
-
-    $activities = civicrm_api3('Activity', 'get', array(
-      'id' => array('IN' => $activityIds),
-    ));
+    $activityIds = $e->getTokenProcessor()->getContextValues('activityId');
+    $activities = civicrm_api3('Activity', 'get', [
+      'id' => ['IN' => $activityIds],
+      'options' => ['limit' => 0]
+    ]);
     $prefetch['activity'] = $activities['values'];
 
     // If we need ActivityContacts, load them
@@ -169,10 +167,11 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
     if ($needContacts) {
       $result = civicrm_api3('ActivityContact', 'get', [
         'sequential' => 1,
-        'activity_id' => array('IN' => $activityIds),
+        'activity_id' => ['IN' => $activityIds],
+        'options' => ['limit' => 0],
       ]);
       $contactIds = [];
-      $types = [ '1' => 'assignee', '2' => 'source', '3' => 'target'];
+      $types = ['1' => 'assignee', '2' => 'source', '3' => 'target'];
       foreach ($result['values'] as $ac) {
         if ($ac['record_type_id'] == 2) {
           $prefetch['activityContact'][$ac['activity_id']][$types[$ac['record_type_id']]] = $ac['contact_id'];
@@ -183,7 +182,8 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
         $contactIds[$ac['contact_id']] = 1;
       }
       $result = civicrm_api3('Contact', 'get', [
-        'id' => array('IN' => array_keys($contactIds)),
+        'id' => ['IN' => array_keys($contactIds)],
+        'options' => ['limit' => 0],
       ]);
       $prefetch['contact'] = $result['values'];
     }
@@ -195,9 +195,9 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
    */
   public function evaluateToken(\Civi\Token\TokenRow $row, $entity, $field, $prefetch = NULL) {
     // maps token name to api field
-    $mapping = array(
+    $mapping = [
       'activity_id' => 'id',
-    );
+    ];
 
     if (!empty($row->context['actionSearchResult'])) {
       // For scheduled reminders
@@ -207,13 +207,13 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
       $activity = (object) $prefetch['activity'][$row->context['activityId']];
     }
 
-    if (in_array($field, array('activity_date_time'))) {
+    if (in_array($field, ['activity_date_time'])) {
       $row->tokens($entity, $field, \CRM_Utils_Date::customFormat($activity->$field));
     }
     elseif (isset($mapping[$field]) AND (isset($activity->{$mapping[$field]}))) {
       $row->tokens($entity, $field, $activity->{$mapping[$field]});
     }
-    elseif (in_array($field, array('activity_type'))) {
+    elseif (in_array($field, ['activity_type'])) {
       $activityTypes = \CRM_Core_OptionGroup::values('activity_type');
       $row->tokens($entity, $field, $activityTypes[$activity->activity_type_id]);
     }
