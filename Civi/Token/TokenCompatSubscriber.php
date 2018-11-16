@@ -49,7 +49,7 @@ class TokenCompatSubscriber implements EventSubscriberInterface {
     $messageTokens = $e->getTokenProcessor()->getMessageTokens();
 
     foreach ($e->getRows() as $row) {
-      if (empty($e->context['contactId'])) {
+      if (empty($row->context['contactId'])) {
         continue;
       }
       /** @var int $contactId */
