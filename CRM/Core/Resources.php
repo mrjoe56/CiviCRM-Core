@@ -609,6 +609,7 @@ class CRM_Core_Resources {
       $settings = array(
         'config' => array(
           'isFrontend' => $config->userFrameworkFrontend,
+          'isDrupal' => $config->userSystem->is_drupal,
         ),
       );
       $contactID = CRM_Core_Session::getLoggedInContactID();
