@@ -128,7 +128,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
 
     // Create financial type - Event Fee 2
     $form = $this->getForm(array('is_monetary' => 1, 'financial_type_id' => 1));
-    $newFinancialTypeID = $this->createFinancialType('Event Fee 2')['id'];
+    CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes($financialTypes);
     $paramsField = array(
       'label' => 'Price Field 2',
       'name' => CRM_Utils_String::titleToVar('Price Field 2'),
@@ -145,7 +145,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
       'is_active' => array('1' => 1),
       'price_set_id' => $this->_ids['price_set'],
       'is_enter_qty' => 1,
-      'financial_type_id' => $newFinancialTypeID,
+      'financial_type_id' => array_search('Campaign Contribution', $financialTypes),
     );
     // Create price set and its price fields
     $this->_ids['price_field'][] = CRM_Price_BAO_PriceField::create($paramsField)->id;
@@ -194,9 +194,30 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
       ),
     );
     $form->setAction(CRM_Core_Action::ADD);
+    print_r(array(
+      'register_date' => date('Ymd'),
+      'status_id' => 5,
+      'role_id' => 1,
+      'event_id' => $form->_eventId,
+      'priceSetId' => $this->_ids['price_set'],
+      'price_' . $this->_ids['price_field'][0]  => array(
+        $this->_ids['price_field_value'][0] => 1,
+      ),
+      'price_' . $this->_ids['price_field'][1]  => array(
+        $this->_ids['price_field_value'][1] => 1,
+      ),
+      'amount_level' => 'Too much',
+      'fee_amount' => 65,
+      'total_amount' => 65,
+      'payment_processor_id' => 0,
+      'record_contribution' => TRUE,
+      'financial_type_id' => 1,
+      'contribution_status_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed'),
+      'payment_instrument_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'payment_instrument_id', 'Check'),
+    ));
+
     $form->submit(array(
-      'register_date' => 'now',
-      'register_date_time' => '00:00:00',
+      'register_date' => date('Ymd'),
       'status_id' => 5,
       'role_id' => 1,
       'event_id' => $form->_eventId,

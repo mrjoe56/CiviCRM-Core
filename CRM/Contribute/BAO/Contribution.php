@@ -4964,7 +4964,7 @@ WHERE ft.is_payment = 1
     if (!empty($lineItems)) {
       // get financial item
       list($financialItems, $taxItems) = self::getLastFinancialItems($trxnParams['contribution_id']);
-      self::createProportionalFinancialEntries($trxnId, $lineItems, $financialItems, $taxItems);
+      self::createProportionalFinancialEntries($trxnId, $contributionTotalAmount, $lineItems, $financialItems, $taxItems);
     }
   }
 
@@ -5794,32 +5794,39 @@ LIMIT 1;";
    * Create proportional entries in civicrm_entity_financial_trxn.
    *
    * @param int $trxnID
-   *
+   * @param float $contributionTotalAmount
    * @param array $lineItems
-   *
    * @param array $financialItems
-   *
    * @param array $taxItems
    *
    */
-  public static function createProportionalFinancialEntries($trxnID, $lineItems, $financialItems, $taxItems) {
+  public static function createProportionalFinancialEntries($trxnID, $contributionTotalAmount, $lineItems, $financialItems, $taxItems) {
     $eftParams = array(
       'entity_table' => 'civicrm_financial_item',
       'financial_trxn_id' => $trxnID,
     );
+    $financialTxnAmount = CRM_Core_DAO::getFieldValue('CRM_Financial_DAO_FinancialTrxn', $trxnID, 'total_amount');
     foreach ($lineItems as $key => $value) {
       if ($value['qty'] == 0) {
         continue;
       }
       $eftParams['entity_id'] = $financialItems[$value['price_field_value_id']]['financial_item_id'];
-      $eftParams['amount'] = $financialItems[$value['price_field_value_id']]['amount'];
-      if (0 == civicrm_api3('EntityFinancialTrxn', 'getcount', ['entity_table' => 'civicrm_financial_item', 'entity_id' => $eftParams['entity_id']])) {
+
+      // In case of partial payment, calculate proportional amount for each line-item and created respective EFT records
+      if ($value['line_total'] == $financialItems[$value['price_field_value_id']]['amount']) {
+        $eftParams['amount'] = CRM_Contribute_BAO_Contribution_Utils::formatAmount($financialItems[$value['price_field_value_id']]['amount'] * ($financialTxnAmount / $contributionTotalAmount));
+      }
+      // Else for price change, allocate financial item amount as EFT amount
+      else {
+        $eftParams['amount'] = $financialItems[$value['price_field_value_id']]['amount'];
+      }
+      if (0 == civicrm_api3('EntityFinancialTrxn', 'getcount', ['entity_table' => 'civicrm_financial_item', 'entity_id' => $eftParams['entity_id'], 'financial_trxn_id' => $trxnID])) {
         civicrm_api3('EntityFinancialTrxn', 'create', $eftParams);
       }
       if (array_key_exists($value['price_field_value_id'], $taxItems)) {
         $eftParams['entity_id'] = $taxItems[$value['price_field_value_id']]['financial_item_id'];
         $eftParams['amount'] = $taxItems[$value['price_field_value_id']]['amount'];
-        if (0 == civicrm_api3('EntityFinancialTrxn', 'getcount', ['entity_table' => 'civicrm_financial_item', 'entity_id' => $eftParams['entity_id']])) {
+        if (0 == civicrm_api3('EntityFinancialTrxn', 'getcount', ['entity_table' => 'civicrm_financial_item', 'entity_id' => $eftParams['entity_id'], 'financial_trxn_id' => $trxnID])) {
           civicrm_api3('EntityFinancialTrxn', 'create', $eftParams);
         }
       }

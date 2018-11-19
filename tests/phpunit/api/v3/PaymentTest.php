@@ -426,7 +426,7 @@ class api_v3_PaymentTest extends CiviUnitTestCase {
       'financial_trxn_id' => $payment['id'],
     );
     $eft = $this->callAPISuccess('EntityFinancialTrxn', 'get', $params);
-    $amounts = array(66.67, 33.33);
+    $amounts = array(-33.33, -16.67);
     foreach ($eft['values'] as $value) {
       $this->assertEquals($value['amount'], array_pop($amounts));
     }
