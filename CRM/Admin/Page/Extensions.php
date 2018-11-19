@@ -144,10 +144,20 @@ class CRM_Admin_Page_Extensions extends CRM_Core_Page_Basic {
     // $manager->refresh();
 
     $localExtensionRows = $this->formatLocalExtensionRows();
+    uasort($localExtensionRows, 'CRM_Admin_Page_Extensions::sortExtensionByStatus');
     $this->assign('localExtensionRows', $localExtensionRows);
 
     $remoteExtensionRows = $this->formatRemoteExtensionRows($localExtensionRows);
     $this->assign('remoteExtensionRows', $remoteExtensionRows);
+
+    $extensionRows = array_replace($remoteExtensionRows, $localExtensionRows);
+
+    $this->categoriseExtensions($extensionRows);
+    $this->sortExtensions($extensionRows);
+    $this->assign('extensionsByCategory', $extensionRows);
+
+    $this->assignExtensionCategoryNames($extensionRows);
+    $this->assignExtensionCategoryToTabMap($extensionRows);
   }
 
   /**
@@ -261,10 +271,119 @@ class CRM_Admin_Page_Extensions extends CRM_Core_Page_Basic {
           }
         }
       }
+      else {
+        $row['status'] = CRM_Extension_Manager::STATUS_REMOTE;
+      }
       $remoteExtensionRows[$row['id']] = $row;
     }
 
     return $remoteExtensionRows;
+  }
+
+  /**
+   *
+   * @param array $extensions of the form $key => array of extension details.
+   */
+  private function categoriseExtensions(&$extensions) {
+    $categorisedExtensions = array();
+
+    $extensionCategoryDefaultsJson = file_get_contents(__DIR__ . '/Extensions/ExtensionCategoryDefaults.json');
+    if (FALSE === $extensionCategoryDefaultsJson) {
+      throw new CRM_Exception('Missing file Page/Extensions/ExtensionCategoryDefaults.json');
+    }
+    $extensionCategoryLookupTable = json_decode($extensionCategoryDefaultsJson, TRUE);
+
+    foreach ($extensions as $extensionKey => $eachExtensionDetails) {
+      if (array_key_exists($eachExtensionDetails['key'], $extensionCategoryLookupTable)) {
+        $category = $extensionCategoryLookupTable[$eachExtensionDetails['key']];
+      }
+      else {
+        $category = 'Unknown';
+      }
+
+      // Override it with whatever's in the info file.
+      if (array_key_exists('category', $eachExtensionDetails)) {
+        if (!empty($eachExtensionDetails['category'])) {
+          // Spaces can break the behaviour. We remove them here and add them in
+          // the label list in case any slip past the reviewers.
+          $category = str_replace(' ', '', $eachExtensionDetails['category']);
+        }
+      }
+
+      if (!array_key_exists($category, $categorisedExtensions)) {
+        $categorisedExtensions[$category] = array();
+      }
+
+      $categorisedExtensions[$category][$eachExtensionDetails['key']] = $eachExtensionDetails;
+
+      unset($extensions[$extensionKey]); // Remove old entry to prevent memory spike.
+    }
+
+    $extensions = $categorisedExtensions;
+  }
+
+  private function sortExtensions(&$extensionsByCategory) {
+    ksort($extensionsByCategory); // Sort by category array key.
+    foreach ($extensionsByCategory as &$eachCategory) {
+      usort($eachCategory, 'CRM_Admin_Page_Extensions::sortExtensionByStatus');
+    }
+  }
+
+  private static function sortExtensionByStatus($a, $b) {
+    if ($a['status'] == $b['status']) {
+      return 0;
+    }
+    elseif ($a['status'] < $b['status']) {
+      return -1;
+    }
+    elseif ($a['status'] > $b['status']) {
+      return 1;
+    }
+  }
+
+  /**
+   * Assigns neat labels - including spaces - to be used by the Smarty templates.
+   * This is needed because the categoryName forms part of the HTML elements.
+   *
+   * @param array $extensionRows
+   */
+  private function assignExtensionCategoryNames($extensionRows) {
+    $extensionCategoryNames = array();
+    // Translation of extension categories to their normal names.
+    foreach ($extensionRows as $eachCategoryName => $eachCategoryRows) {
+      $extensionCategoryNames[$eachCategoryName] = $eachCategoryName;
+    }
+    $extensionCategoryNames['DataCleaning'] = 'Data Cleaning';
+    $extensionCategoryNames['SMSProviders'] = 'SMS Providers';
+    $extensionCategoryNames['PaymentProcessors'] = 'Payment Processors';
+    $this->assign('extensionCategoryNames', $extensionCategoryNames);
+  }
+
+  /**
+   * Creates and assigns a Category to Tab map to be used by Smarty templates.
+   * @param array $extensionRows
+   */
+  private function assignExtensionCategoryToTabMap($extensionRows) {
+    $extensionCategoryToTabMap = array();
+
+    // By default, everything is mapped to itself. This makes it future proof.
+    foreach ($extensionRows as $eachCategoryName => $eachCategoryRows) {
+      $extensionCategoryToTabMap[$eachCategoryName] = array($eachCategoryName);
+    }
+
+    // We then merge categories manually underneath.
+    $extensionCategoryToTabMap['Developers'][] = 'APIs';
+    unset ($extensionCategoryToTabMap['APIs']);
+    $extensionCategoryToTabMap['Communication'][] = 'Tokens';
+    unset ($extensionCategoryToTabMap['Tokens']);
+    $extensionCategoryToTabMap['Communication'][] = 'SMSProviders';
+    unset ($extensionCategoryToTabMap['SMSProviders']);
+    $extensionCategoryToTabMap['Utilities'][] = 'DataCleaning';
+    unset ($extensionCategoryToTabMap['DataCleaning']);
+    $extensionCategoryToTabMap['Finance'][] = 'PaymentProcessors';
+    unset ($extensionCategoryToTabMap['PaymentProcessors']);
+
+    $this->assign('extensionCategoryToTabMap', $extensionCategoryToTabMap);
   }
 
   /**

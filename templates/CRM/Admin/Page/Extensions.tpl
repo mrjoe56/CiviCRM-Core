@@ -46,33 +46,37 @@
     <div id="mainTabContainer" class="ui-tabs ui-widget ui-widget-content ui-corner-all">
         <ul class="crm-extensions-tabs-list">
             <li id="tab_summary" class="crm-tab-button">
-              <a href="#extensions-main" title="{ts}Extensions{/ts}">
-              <span> </span> {ts}Extensions{/ts}
+              <a href="#extensions-main" title="{ts}Your Extensions{/ts}">
+              <span> </span> {ts}Your Extensions{/ts}
               <em>&nbsp;</em>
               </a>
             </li>
-            <li id="tab_addnew" class="crm-tab-button">
-              <a href="#extensions-addnew" title="{ts}Add New{/ts}">
-              <span> </span> {ts}Add New{/ts}
+            {foreach from=$extensionCategoryToTabMap key=tabName item=categories}
+            <li id="tab_{$tabName}" class="crm-tab-button">
+              <a href="#extensions-addnew-{$tabName}" title="{ts}{$tabName}{/ts}">
+              <span> </span> {ts}{$extensionCategoryNames.$tabName}{/ts}
               <em>&nbsp;</em>
               </a>
             </li>
+            {/foreach}
         </ul>
 
         <div id="extensions-main" class="ui-tabs-panel ui-widget-content ui-corner-bottom">
             {include file="CRM/Admin/Page/Extensions/Main.tpl"}
         </div>
-        <div id="extensions-addnew" class="ui-tabs-panel ui-widget-content ui-corner-bottom">
-            {if $extAddNewEnabled}
-                {if $extAddNewReqs}
-                    {include file="CRM/Admin/Page/Extensions/AddNewReq.tpl"}
+        {foreach from=$extensionCategoryToTabMap key=tabName item=categories}
+            <div id="extensions-addnew-{$tabName}" class="ui-tabs-panel ui-widget-content ui-corner-bottom">
+                {if $extAddNewEnabled}
+                    {if $extAddNewReqs}
+                        {include file="CRM/Admin/Page/Extensions/AddNewReq.tpl"}
+                    {else}
+                        {include file="CRM/Admin/Page/Extensions/AddNew.tpl" thisTab=$tabName}
+                    {/if}
                 {else}
-                    {include file="CRM/Admin/Page/Extensions/AddNew.tpl"}
+                    {ts}The system administrator has disabled this feature.{/ts}
                 {/if}
-            {else}
-                {ts}The system administrator has disabled this feature.{/ts}
-            {/if}
-        </div>
+            </div>
+        {/foreach}
 
         <div class="clear"></div>
     </div>
