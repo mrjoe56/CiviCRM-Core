@@ -127,7 +127,11 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
     // Expected : Check the amount of new Financial Item created is $40
 
     // Create financial type - Event Fee 2
-    $form = $this->getForm(array('is_monetary' => 1, 'financial_type_id' => 1));
+    $form = $this->getForm(array('is_monetary' => 1, 'financial_type_id' => 1), 'Text');
+
+    // update price field 1
+    $this->callAPISuccess('PriceFieldValue', 'create', ['id' => $this->_ids['price_field_value'][0], 'amount' => 55.00]);
+
     CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes($financialTypes);
     $paramsField = array(
       'label' => 'Price Field 2',
@@ -138,7 +142,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
       'option_value' => array('1' => 10),
       'option_name' => array('1' => 10),
       'option_weight' => array('1' => 1),
-      'option_amount' => array('1' => 1),
+      'option_amount' => array('1' => 10),
       'is_display_amounts' => 1,
       'weight' => 1,
       'options_per_line' => 1,
@@ -167,7 +171,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
           'membership_type_id' => NULL,
           'membership_num_terms' => NULL,
           'auto_renew' => NULL,
-          'html_type' => 'Radio',
+          'html_type' => 'Text',
           'financial_type_id' => $this->getFinancialTypeId('Event Fee'),
           'tax_amount' => NULL,
           'non_deductible_amount' => '0.00',
@@ -186,7 +190,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
           'membership_type_id' => NULL,
           'membership_num_terms' => NULL,
           'auto_renew' => NULL,
-          'html_type' => 'Radio',
+          'html_type' => 'Text',
           'financial_type_id' => $this->getFinancialTypeId('Event Fee 2'),
           'tax_amount' => NULL,
           'non_deductible_amount' => '0.00',
@@ -194,27 +198,6 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
       ),
     );
     $form->setAction(CRM_Core_Action::ADD);
-    print_r(array(
-      'register_date' => date('Ymd'),
-      'status_id' => 5,
-      'role_id' => 1,
-      'event_id' => $form->_eventId,
-      'priceSetId' => $this->_ids['price_set'],
-      'price_' . $this->_ids['price_field'][0]  => array(
-        $this->_ids['price_field_value'][0] => 1,
-      ),
-      'price_' . $this->_ids['price_field'][1]  => array(
-        $this->_ids['price_field_value'][1] => 1,
-      ),
-      'amount_level' => 'Too much',
-      'fee_amount' => 65,
-      'total_amount' => 65,
-      'payment_processor_id' => 0,
-      'record_contribution' => TRUE,
-      'financial_type_id' => 1,
-      'contribution_status_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed'),
-      'payment_instrument_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'payment_instrument_id', 'Check'),
-    ));
 
     $form->submit(array(
       'register_date' => date('Ymd'),
@@ -259,7 +242,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
     $this->assertEquals(105, $sum);
 
     $contribution = $this->callAPISuccessGetSingle('Contribution', array());
-    $this->assertEquals('Partially Paid', $contribution['contribution_status']);
+    $this->assertEquals('Partially paid', $contribution['contribution_status']);
 
     $submittedValues = [
       'total_amount' => 40.00,
@@ -269,10 +252,10 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
     ];
     CRM_Contribute_BAO_Contribution::recordAdditionalPayment($contribution['id'], $submittedValues, 'owed', $participant['id']);
 
-    list($financialItems, $taxItems) = CRM_Contribute_BAO_Contribution::getLastFinancialItems($trxnParams['contribution_id']);
+    list($financialItems, $taxItems) = CRM_Contribute_BAO_Contribution::getLastFinancialItems($contribution['id']);
 
     // Check that amount of last financial item for price field B is $40
-    $this->assertEquals(40.00, $financialItems[$this->_ids['price_field_value'][1]]);
+    $this->assertEquals(40.00, $financialItems[$this->_ids['price_field_value'][1]]['amount']);
   }
 
   /**
@@ -381,9 +364,9 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
    *
    * @return CRM_Event_Form_Participant
    */
-  protected function getForm($eventParams = array()) {
+  protected function getForm($eventParams = array(), $priceFieldType = 'Radio') {
     if (!empty($eventParams['is_monetary'])) {
-      $event = $this->eventCreatePaid($eventParams);
+      $event = $this->eventCreatePaid($eventParams, $priceFieldType);
     }
     else {
       $event = $this->eventCreate($eventParams);
