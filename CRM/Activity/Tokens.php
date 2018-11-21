@@ -330,7 +330,11 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
       $row->tokens($entity, $field, $this->campaigns[$activity->campaign_id]);
     }
     elseif (array_key_exists($field, $this->customFieldTokens)) {
-      $row->tokens($entity, $field, \CRM_Core_BAO_CustomField::displayValue($activity->$field, $field));
+      $row->tokens($entity, $field,
+        isset($activity->$field)
+          ? \CRM_Core_BAO_CustomField::displayValue($activity->$field, $field)
+          : ''
+      );
     }
     elseif (isset($activity->$field)) {
       $row->tokens($entity, $field, $activity->$field);
