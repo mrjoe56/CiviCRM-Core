@@ -349,7 +349,7 @@ class CRM_Core_Form_Task_PDFLetterCommon {
    *                       otherwise outputs document to browser
    *
    */
-  public function renderFromRows($rows, $msgPart, $formValues) {
+  public static function renderFromRows($rows, $msgPart, $formValues) {
     $html = array();
     foreach ($rows as $row) {
       $html[] = $row->render($msgPart);

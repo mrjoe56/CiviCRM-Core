@@ -67,10 +67,12 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
       $this->basicTokens = [
         'activity_id' => ts('Activity ID'),
         'activity_type' => ts('Activity Type'),
+        'activity_type_id' => ts('Activity Type ID'),
         'status' => ts('Activity Status'),
         'status_id' => ts('Activity Status ID'),
         'subject' => ts('Activity Subject'),
         'details' => ts('Activity Details'),
+        'location' => ts('Activity Location'),
         'activity_date_time' => ts('Activity Date-Time'),
         'created_date' => ts('Activity Creation Date'),
         'duration' => ts('Activity Duration'),
@@ -240,7 +242,7 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
     }
 
     // Store the activity statuses if needed
-    if (in_array('activity_status', $activeTokens)) {
+    if (in_array('status', $activeTokens)) {
       $this->activityStatuses = \CRM_Core_OptionGroup::values('activity_status');
     }
 
@@ -323,8 +325,8 @@ class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
     elseif (in_array($field, ['activity_type'])) {
       $row->tokens($entity, $field, $this->activityTypes[$activity->activity_type_id]);
     }
-    elseif (in_array($field, ['activity_status'])) {
-      $row->tokens($entity, $field, $this->activityStatuses[$activity->activity_status_id]);
+    elseif (in_array($field, ['status'])) {
+      $row->tokens($entity, $field, $this->activityStatuses[$activity->status_id]);
     }
     elseif (in_array($field, ['campaign'])) {
       $row->tokens($entity, $field, $this->campaigns[$activity->campaign_id]);
