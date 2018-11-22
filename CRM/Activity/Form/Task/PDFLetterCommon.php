@@ -36,7 +36,6 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLette
 
   /**
    * Process the form after the input has been submitted and validated.
-   * This uses the new token processor
    *
    * @param CRM_Core_Form $form
    * @param $activityIds
@@ -48,6 +47,24 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLette
     $formValues = $form->controller->exportValues($form->getName());
     $html_message = self::processTemplate($formValues);
 
+    // Do the rest in another function to make testing easier
+    self::createDocument($activityIds, $html_message, $formValues);
+
+    $form->postProcessHook();
+
+    CRM_Utils_System::civiExit(1);
+  }
+
+  /**
+   * Produce the document from the activities
+   * This uses the new token processor
+   *
+   * @param  array $activityIds  array of activity ids
+   * @param  string $html_message message text with tokens
+   * @param  array $formValues   formValues from the form
+   * @return void
+   */
+  public static function createDocument($activityIds, $html_message, $formValues) {
     $tp = self::createTokenProcessor();
     $tp->addMessage('body_html', $html_message, 'text/html');
 
@@ -56,17 +73,13 @@ class CRM_Activity_Form_Task_PDFLetterCommon extends CRM_Core_Form_Task_PDFLette
     }
     $tp->evaluate();
 
-    self::renderFromRows($tp->getRows(), 'body_html', $formValues);
-
-    $form->postProcessHook();
-
-    CRM_Utils_System::civiExit(1);
+    return self::renderFromRows($tp->getRows(), 'body_html', $formValues);
   }
 
   /**
    * Create a token processor
    */
-  public function createTokenProcessor() {
+  public static function createTokenProcessor() {
     return new TokenProcessor(\Civi::dispatcher(), array(
       'controller' => get_class(),
       'smarty' => FALSE,
