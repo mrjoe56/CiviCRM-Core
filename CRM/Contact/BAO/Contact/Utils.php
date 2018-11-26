@@ -825,7 +825,7 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
     // Normal update process will automatically create new address with submitted values
 
     // 1. loop through entire submitted address array
-    $skipFields = array('is_primary', 'location_type_id', 'is_billing', 'master_id');
+    $skipFields = array('is_primary', 'location_type_id', 'is_billing', 'master_id', 'update_current_employer');
     foreach ($address as & $values) {
       // 2. check if "Use another contact's address" is checked, if not continue
       // Additionally, if master_id is set (address was shared), set master_id to empty value.
@@ -834,6 +834,12 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
           $values['master_id'] = '';
         }
         continue;
+      }
+      // in the UI, we always have a checkbox for specifying whether to update the current employer or not
+      // but if not checked, the parameter is just not defined in the address array
+      // we need to force a value because of API backward compatibility (implicitely create relationship if no parameter)
+      if (!isset($values['update_current_employer'])) {
+        $values['update_current_employer'] = 0;
       }
 
       // 3. get the address details for master_id

@@ -1008,6 +1008,25 @@ LIMIT {$offset}, {$rowCount}
   }
 
   /**
+   * Check if a employee/employer relationship could be created between the 2 contact
+   * Return organization name if the relationship is possible otherwise FALSE
+   */
+  public static function isPotentialEmployer() {
+    $contactId = CRM_Utils_Request::retrieve('contact_id', 'Positive');
+    $orgId = CRM_Utils_Request::retrieve('org_id', 'Positive');
+    $employer = FALSE;
+    if ($contactId && $orgId) {
+      $contactType1 = CRM_Contact_BAO_Contact::getContactType($contactId);
+      $contactType2 = CRM_Contact_BAO_Contact::getContactType($orgId);
+      if ($contactType1 == 'Individual' && $contactType2 == 'Organization') {
+        $employer = CRM_Contact_BAO_Contact::displayName($orgId);
+      }
+    }
+    CRM_Utils_JSON::output($employer);
+
+  }
+
+  /**
    * Mark dupe pairs as selected from un-selected state or vice-versa, in dupe cache table.
    */
   public static function toggleDedupeSelect() {
