@@ -47,14 +47,18 @@
  */
 class CRM_Activity_Tokens extends \Civi\Token\AbstractTokenSubscriber {
 
+  private $basicTokens;
+  private $customFieldTokens;
+  private $specialTokens;
+
   /**
    * CRM_Activity_Tokens constructor.
    */
   public function __construct() {
     parent::__construct('activity', array_merge(
-      self::getBasicTokens(),
-      self::getCustomFieldTokens(),
-      self::getSpecialTokens()
+      $this->getBasicTokens(),
+      $this->getCustomFieldTokens(),
+      $this->getSpecialTokens()
     ));
   }
 
