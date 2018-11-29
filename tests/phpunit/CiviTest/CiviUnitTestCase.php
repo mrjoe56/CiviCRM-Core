@@ -1789,8 +1789,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
     $params = array_merge(array(
       'subject' => 'Discussion on warm beer',
       'activity_date_time' => date('Ymd'),
-      'duration_hours' => 30,
-      'duration_minutes' => 20,
+      'duration' => 90,
       'location' => 'Baker Street',
       'details' => 'Lets schedule a meeting',
       'status_id' => 1,

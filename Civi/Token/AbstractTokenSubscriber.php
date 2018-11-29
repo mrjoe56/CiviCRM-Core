@@ -45,6 +45,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  *   3. Implement the evaluateToken() method.
  *   4. Optionally, override others:
  *      + checkActive()
+ *      + getActiveTokens()
  *      + prefetch()
  *      + alterActionScheduleMailing()
  *   5. Register the new class with the event-dispatcher.
@@ -142,20 +143,33 @@ abstract class AbstractTokenSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $messageTokens = $e->getTokenProcessor()->getMessageTokens();
-    if (!isset($messageTokens[$this->entity])) {
+    $activeTokens = $this->getActiveTokens($e);
+    if (!$activeTokens) {
       return;
     }
-
-    $activeTokens = array_intersect($messageTokens[$this->entity], array_keys($this->tokenNames));
-
-    $prefetch = $this->prefetch($e);
+    $prefetch = $this->prefetch($e, $activeTokens);
 
     foreach ($e->getRows() as $row) {
       foreach ((array) $activeTokens as $field) {
         $this->evaluateToken($row, $this->entity, $field, $prefetch);
       }
     }
+  }
+
+  /**
+   * To handle variable tokens, override this function and return the active tokens.
+   * Active tokens are those used in the message, for this entity and declared by this processor
+   *
+   * @param \Civi\Token\Event\TokenValueEvent $e
+   *
+   * @return mixed
+   */
+  public function getActiveTokens(TokenValueEvent $e) {
+    $messageTokens = $e->getTokenProcessor()->getMessageTokens();
+    if (!isset($messageTokens[$this->entity])) {
+      return NULL;
+    }
+    return array_intersect($messageTokens[$this->entity], array_keys($this->tokenNames));
   }
 
   /**
@@ -166,7 +180,7 @@ abstract class AbstractTokenSubscriber implements EventSubscriberInterface {
    *
    * @return mixed
    */
-  public function prefetch(TokenValueEvent $e) {
+  public function prefetch(TokenValueEvent $e, $activeTokens) {
     return NULL;
   }
 
