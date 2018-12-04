@@ -1287,6 +1287,34 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
   }
 
   /**
+   * Add a search for a range using date picker fields.
+   *
+   * @param string $fieldName
+   * @param string $label
+   * @param string $dateFormat
+   * @param bool $required
+   */
+  public function addDatePickerRange($fieldName, $label, $required = FALSE, $fromLabel = 'From', $toLabel = 'To', $dateFormat ='') {
+
+    $options = array(
+      '' => ts('- any -'),
+      0 => ts('Choose Date Range'),
+    ) + CRM_Core_OptionGroup::values('relative_date_filters');
+
+    $this->add('select',
+      "{$fieldName}_relative",
+      $label,
+      $options,
+      $required,
+      NULL
+    );
+    $attributes = ['format' => 'searchDate'];
+    $extra = ['time' => FALSE];
+    $this->add('datepicker', $fieldName . '_low', ts($fromLabel), $attributes, $required, $extra);
+    $this->add('datepicker', $fieldName . '_high', ts($toLabel), $attributes, $required, $extra);
+  }
+
+  /**
    * Based on form action, return a string representing the api action.
    * Used by addField method.
    *
