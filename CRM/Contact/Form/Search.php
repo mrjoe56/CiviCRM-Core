@@ -902,4 +902,22 @@ class CRM_Contact_Form_Search extends CRM_Core_Form_Search {
     return ts('Search');
   }
 
+  /**
+   * Do form value conversions based on form metadata.
+   */
+  public function convertFormValues() {
+    $metadata = $this->getSearchFieldMetadata();
+    foreach ($metadata as $fields) {
+      foreach ($fields as $field => $spec) {
+        if ($spec['type'] == CRM_Utils_Type::T_DATE) {
+          if (isset($this->_formValues[$field . '_low'])) {
+            if (date('Y-m-d H:i:s', strtotime($this->_formValues[$field . '_low'])) !== $this->_formValues[$field . '_low']) {
+              $this->_formValues[$field . '_low'] = date('Y-m-d H:i:s', strtotime(CRM_Utils_Date::processDate($this->_formValues[$field . '_low'])));
+            }
+          }
+        }
+      }
+    }
+  }
+
 }

@@ -327,9 +327,11 @@ class CRM_Grant_BAO_Query extends CRM_Core_BAO_Query {
    */
   public static function buildSearchForm(&$form) {
 
+
     $grantType = CRM_Core_OptionGroup::values('grant_type');
     $form->addSearchFieldMetadata(['Grant' => self::getSearchFieldMetadata()]);
     $form->addFormFieldsFromMetadata();
+    $form->convertFormValues();
     $form->assign('grantSearchFields', self::getTemplateHandlableSearchFields());
     $form->add('select', 'grant_type_id', ts('Grant Type'), $grantType, FALSE,
       array('id' => 'grant_type_id', 'multiple' => 'multiple', 'class' => 'crm-select2')
