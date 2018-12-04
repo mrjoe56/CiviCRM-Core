@@ -340,6 +340,84 @@ AND    reset_date IS NULL
   }
 
   /**
+   * Build "To Email" pulling data from Email entity
+   *
+   * @param int $contactID
+   *   The contact ID to get emails for.
+   *
+   * @return array
+   *   an array of email
+   * @throws \CiviCRM_API3_Exception
+   */
+  public static function getToEmail($contactID) {
+    $emails = [];
+
+    $contactEntity = civicrm_api3('Contact', 'getsingle', [
+      'sequential' => 1,
+      'id' => $contactID,
+      'api.Email.get' => ['api.LocationType.getsingle' => []],
+    ]);
+
+    $contactName = $contactEntity['display_name'];
+    //Get mail entities from this contact
+    $mailEntities = $contactEntity['api.Email.get'];
+    foreach ($mailEntities['values'] as $mailEntity) {
+      $email = $mailEntity['email'];
+      //Get location type entity associated
+      $locationTypeEntity = $mailEntity['api.LocationType.getsingle'];
+      $locationName = $locationTypeEntity['display_name'];
+
+      $toEmail = "$contactName <$email>";
+      $toEmailHtml = $locationName;
+
+      if (!empty($mailEntity['is_primary'])) {
+        $toEmailHtml .= ' ' . ts('(preferred) ');
+      }
+
+      $toEmailHtml .= htmlspecialchars($toEmail);
+
+      //Add contact email to mails array
+      $emails[$toEmail] = $toEmailHtml;
+    }
+    //Add contact email to mails array
+    $emails[$toEmail] = $toEmailHtml;
+
+    return $emails;
+  }
+
+  /**
+   * Get available locations for a given set of contacts
+   *
+   * @param array $contactIDs
+   *
+   * @return array
+   * @throws \CiviCRM_API3_Exception
+   */
+  public static function getAvailableLocations($contactIDs) {
+    $locations = [];
+
+    $contactsEntity = civicrm_api3('Contact', 'get', [
+      'sequential' => 1,
+      'id' => ['IN' => $contactIDs],
+      'api.Email.get' => ['api.LocationType.getsingle' => []],
+    ]);
+
+    foreach ($contactsEntity['values'] as $contactEntity) {
+      //Get mail entitiy
+      $mailEntities = $contactEntity['api.Email.get'];
+      foreach ($mailEntities['values'] as $mailEntity) {
+        //Get location type entity associated
+        $locationTypeEntity = $mailEntity['api.LocationType.getsingle'];
+        $locationName = $locationTypeEntity['display_name'];
+        $locationID = $locationTypeEntity['id'];
+        $locations[$locationID] = $locationName;
+      }
+    }
+
+    return $locations;
+  }
+
+  /**
    * @return object
    */
   public static function isMultipleBulkMail() {
