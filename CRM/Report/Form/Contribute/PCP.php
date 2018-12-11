@@ -135,6 +135,7 @@ class CRM_Report_Form_Contribute_PCP extends CRM_Report_Form {
             'name' => 'amount',
             'type' => CRM_Utils_Type::T_MONEY,
             'default' => TRUE,
+            'dbAlias' => 'SUM(contribution_soft_civireport.amount)',
             'statistics' => array(
               'sum' => ts('Committed Amount'),
             ),
@@ -151,6 +152,7 @@ class CRM_Report_Form_Contribute_PCP extends CRM_Report_Form {
             'title' => ts('Number of Donors'),
             'name' => 'id',
             'default' => TRUE,
+            'dbAlias' => 'COUNT(IF( contribution_civireport.contribution_status_id > 1, 0, 1))',
             'statistics' => array(
               'count' => ts('Number of Donors'),
             ),
