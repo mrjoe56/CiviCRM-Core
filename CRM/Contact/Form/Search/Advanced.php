@@ -203,7 +203,6 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
       'privacy_toggle' => 1,
       'operator' => 'AND',
     ));
-    $this->normalizeDefaultValues($defaults);
 
     if ($this->_context === 'amtg') {
       $defaults['task'] = CRM_Contact_Task::GROUP_ADD;
