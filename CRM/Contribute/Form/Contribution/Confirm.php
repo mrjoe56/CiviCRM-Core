@@ -297,6 +297,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     // lineItem isn't set until Register postProcess
     $this->_lineItem = $this->get('lineItem');
     $this->_ccid = $this->get('ccid');
+    $this->_isPartialPayment = $this->get('isPartialPayment');
 
     $this->_params = $this->controller->exportValues('Main');
     $this->_params['ip_address'] = CRM_Utils_System::ipAddress();
@@ -718,6 +719,10 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
    */
   public function postProcess() {
     $contactID = $this->getContactID();
+    if (!empty($this->_ccid)) {
+      $this->_membershipContactID = NULL;
+      $contactID = CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_Contribution', $this->_ccid, 'contact_id');
+    }
     try {
       $result = $this->processFormSubmission($contactID);
     }
@@ -966,8 +971,14 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       // @todo this is the wrong place for this - it should be done as close to form submission
       // as possible
       $contributionParams['total_amount'] = $params['amount'];
-
-      $contribution = CRM_Contribute_BAO_Contribution::add($contributionParams);
+      if (!empty($form->_ccid) && !empty($form->_isPartialPayment)) {
+        $getParams = array('id' => $form->_ccid);
+        $defaults = array();
+        $contribution = CRM_Contribute_BAO_Contribution::retrieve($getParams, $defaults, $getParams);
+      }
+      else {
+        $contribution = CRM_Contribute_BAO_Contribution::add($contributionParams);
+      }
 
       $invoiceSettings = Civi::settings()->get('contribution_invoice_settings');
       $invoicing = CRM_Utils_Array::value('invoicing', $invoiceSettings);
@@ -1935,6 +1946,8 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
   public static function submit($params) {
     $form = new CRM_Contribute_Form_Contribution_Confirm();
     $form->_id = $params['id'];
+    $form->_ccid = CRM_Utils_Array::value('contributionId', $params);
+    $form->_isPartialPayment = CRM_Utils_Array::value('isPartialPayment', $params);
 
     CRM_Contribute_BAO_ContributionPage::setValues($form->_id, $form->_values);
     $form->_separateMembershipPayment = CRM_Contribute_BAO_ContributionPage::getIsMembershipPayment($form->_id);
@@ -1957,12 +1970,14 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       $form->_values['additional_reminder_day'] = $pledgeBlock['additional_reminder_day'];
       $form->_values['is_email_receipt'] = FALSE;
     }
-    $priceSetID = $form->_params['priceSetId'] = $paramsProcessedForForm['price_set_id'];
-    $priceFields = CRM_Price_BAO_PriceSet::getSetDetail($priceSetID);
-    $priceSetFields = reset($priceFields);
-    $form->_values['fee'] = $priceSetFields['fields'];
-    $form->_priceSetId = $priceSetID;
-    $form->setFormAmountFields($priceSetID);
+    if (empty($form->_ccid)) {
+      $priceSetID = $form->_params['priceSetId'] = $paramsProcessedForForm['price_set_id'];
+      $priceFields = CRM_Price_BAO_PriceSet::getSetDetail($priceSetID);
+      $priceSetFields = reset($priceFields);
+      $form->_values['fee'] = $priceSetFields['fields'];
+      $form->_priceSetId = $priceSetID;
+      $form->setFormAmountFields($priceSetID);
+    }
     $capabilities = array();
     if ($form->_mode) {
       $capabilities[] = (ucfirst($form->_mode) . 'Mode');
@@ -1983,20 +1998,23 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       }
     }
 
-    $priceFields = $priceFields[$priceSetID]['fields'];
-    $lineItems = array();
-    CRM_Price_BAO_PriceSet::processAmount($priceFields, $paramsProcessedForForm, $lineItems, 'civicrm_contribution', $priceSetID);
-    $form->_lineItem = array($priceSetID => $lineItems);
-    $membershipPriceFieldIDs = array();
-    foreach ((array) $lineItems as $lineItem) {
-      if (!empty($lineItem['membership_type_id'])) {
-        $form->set('useForMember', 1);
-        $form->_useForMember = 1;
-        $membershipPriceFieldIDs['id'] = $priceSetID;
-        $membershipPriceFieldIDs[] = $lineItem['price_field_value_id'];
+    $form->_lineItem = array();
+    if (empty($form->_ccid)) {
+      $priceFields = $priceFields[$priceSetID]['fields'];
+      $lineItems = array();
+      CRM_Price_BAO_PriceSet::processAmount($priceFields, $paramsProcessedForForm, $lineItems, 'civicrm_contribution', $priceSetID);
+      $form->_lineItem = array($priceSetID => $lineItems);
+      $membershipPriceFieldIDs = array();
+      foreach ((array) $lineItems as $lineItem) {
+        if (!empty($lineItem['membership_type_id'])) {
+          $form->set('useForMember', 1);
+          $form->_useForMember = 1;
+          $membershipPriceFieldIDs['id'] = $priceSetID;
+          $membershipPriceFieldIDs[] = $lineItem['price_field_value_id'];
+        }
       }
+      $form->set('memberPriceFieldIDS', $membershipPriceFieldIDs);
     }
-    $form->set('memberPriceFieldIDS', $membershipPriceFieldIDs);
     $form->setRecurringMembershipParams();
     $form->processFormSubmission(CRM_Utils_Array::value('contact_id', $params));
   }
@@ -2467,16 +2485,36 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
   protected function completeTransaction($result, $contributionID) {
     if (CRM_Utils_Array::value('payment_status_id', $result) == 1) {
       try {
-        civicrm_api3('contribution', 'completetransaction', array(
-          'id' => $contributionID,
-          'trxn_id' => CRM_Utils_Array::value('trxn_id', $result),
-          'payment_processor_id' => CRM_Utils_Array::value('payment_processor_id', $result, $this->_paymentProcessor['id']),
-          'is_transactional' => FALSE,
-          'fee_amount' => CRM_Utils_Array::value('fee_amount', $result),
-          'receive_date' => CRM_Utils_Array::value('receive_date', $result),
-          'card_type_id' => CRM_Utils_Array::value('card_type_id', $result),
-          'pan_truncation' => CRM_Utils_Array::value('pan_truncation', $result),
-        ));
+        if (!empty($this->_isPartialPayment) && !empty($this->_ccid)) {
+          $amount = CRM_Utils_Array::value('amount', $result);
+          if (empty($amount)) {
+            $amount = CRM_Utils_Array::value('total_amount', $result);
+          }
+          $defaultInvoicePage = Civi::settings()->get('default_invoice_page');
+          $isEmailReceipt = FALSE;
+          if (!empty($defaultInvoicePage)) {
+            $isEmailReceipt = CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_ContributionPage', $defaultInvoicePage, 'is_email_receipt');
+          }
+          civicrm_api3('Payment', 'create', [
+            'contribution_id' => $this->_ccid,
+            'total_amount' => $amount,
+            'is_email_receipt' => $isEmailReceipt,
+            'payment_processor_id' => CRM_Utils_Array::value('payment_processor_id', $result),
+            'payment_instrument_id' => CRM_Utils_Array::value('payment_instrument_id', $result),
+          ]);
+        }
+        else {
+          civicrm_api3('contribution', 'completetransaction', array(
+            'id' => $contributionID,
+            'trxn_id' => CRM_Utils_Array::value('trxn_id', $result),
+            'payment_processor_id' => CRM_Utils_Array::value('payment_processor_id', $result, $this->_paymentProcessor['id']),
+            'is_transactional' => FALSE,
+            'fee_amount' => CRM_Utils_Array::value('fee_amount', $result),
+            'receive_date' => CRM_Utils_Array::value('receive_date', $result),
+            'card_type_id' => CRM_Utils_Array::value('card_type_id', $result),
+            'pan_truncation' => CRM_Utils_Array::value('pan_truncation', $result),
+          ));
+        }
       }
       catch (CiviCRM_API3_Exception $e) {
         if ($e->getErrorCode() != 'contribution_completed') {

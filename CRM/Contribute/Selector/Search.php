@@ -412,6 +412,9 @@ class CRM_Contribute_Selector_Search extends CRM_Core_Selector_Base implements C
       $row['contribution_status_name'] = CRM_Utils_Array::value($row['contribution_status_id'],
         $contributionStatuses
       );
+      if ($this->_context == 'user' && Civi::settings()->get('default_invoice_page') && in_array($row['contribution_status_name'], array('Pending', 'Partially paid'))) {
+        $row['balance_amount'] = CRM_Contribute_BAO_Contribution::getContributionBalance($result->contribution_id);
+      }
 
       $isPayLater = FALSE;
       if ($result->is_pay_later && CRM_Utils_Array::value('contribution_status_name', $row) == 'Pending') {

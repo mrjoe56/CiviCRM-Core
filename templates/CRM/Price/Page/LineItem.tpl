@@ -113,6 +113,8 @@
       {ts}Event Total{/ts}:
     {elseif $context EQ "Membership"}
       {ts}Membership Fee Total{/ts}:
+    {elseif $context EQ "PartialPayment"}
+      {ts}Contribution Total{/ts}:
     {else}
       {ts}Total Amount{/ts}:
     {/if}
