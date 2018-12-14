@@ -170,6 +170,8 @@ class CRM_Dedupe_DedupeFinderTest extends CiviUnitTestCase {
       ),
     );
 
+    $this->hookClass->setHook('civicrm_findDuplicates', array($this, 'hook_civicrm_findDuplicates'));
+
     $count = 1;
 
     foreach ($params as $param) {
@@ -193,7 +195,7 @@ class CRM_Dedupe_DedupeFinderTest extends CiviUnitTestCase {
       'street_address' => 'Ambachtstraat 23',
     );
     CRM_Core_TemporaryErrorScope::useException();
-    $ids = CRM_Contact_BAO_Contact::getDuplicateContacts($fields, 'Individual', 'General');
+    $ids = CRM_Contact_BAO_Contact::getDuplicateContacts($fields, 'Individual', 'General', [], TRUE, NULL, ['event' => ['id' => 1]]);
 
     // Check with default Individual-General rule
     $this->assertEquals(count($ids), 2, 'Check Individual-General rule for dupesByParams().');
@@ -202,6 +204,42 @@ class CRM_Dedupe_DedupeFinderTest extends CiviUnitTestCase {
     foreach ($contactIds as $contactId) {
       $this->contactDelete($contactId);
     }
+  }
+
+  /**
+   * Implement hook_civicrm_findDuplicates and lock in expected params
+   *
+   * @param array $dedupeParams
+   * @param array $dedupeResults
+   * @param array $contextParams
+   *
+   * @return mixed
+   */
+  function hook_civicrm_findDuplicates($dedupeParams, &$dedupeResults, $contextParams) {
+    $expectedDedupeParams = [
+      'check_permission' => TRUE,
+      'contact_type' => 'Individual',
+      'rule' => 'General',
+      'rule_group_id' => NULL,
+      'excluded_contact_ids' => [],
+    ];
+    foreach ($expectedDedupeParams as $key => $value) {
+      $this->assertEquals($value, $dedupeParams[$key]);
+    }
+    $expectedDedupeResults = [
+      'ids' => [],
+      'handled' => FALSE,
+    ];
+    foreach ($expectedDedupeResults as $key => $value) {
+      $this->assertEquals($value, $dedupeResults[$key]);
+    }
+
+    $expectedContext = ['event_id' => 1];
+    foreach ($expectedContext as $key => $value) {
+      $this->assertEquals($value, $contextParams[$key]);
+    }
+
+    return $dedupeResults;
   }
 
   /**
