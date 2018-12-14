@@ -33,6 +33,9 @@
  * @group headless
  */
 class api_v3_ReportTemplateTest extends CiviUnitTestCase {
+
+  use CRMTraits_PCP_PCPTestTrait;
+
   protected $_apiversion = 3;
 
   protected $contactIDs = [];
