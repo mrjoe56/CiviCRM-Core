@@ -31,8 +31,6 @@
  * @copyright CiviCRM LLC (c) 2004-2019
  */
 
-require_once 'Mail.php';
-
 /**
  * Class CRM_Mailing_BAO_MailingJob
  */
