@@ -36,7 +36,6 @@
  */
 
 require_once 'Log.php';
-require_once 'Mail.php';
 
 require_once 'api/api.php';
 
