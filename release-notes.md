@@ -14,6 +14,22 @@ Other resources for identifying changes are:
     * https://github.com/civicrm/civicrm-joomla
     * https://github.com/civicrm/civicrm-wordpress
 
+## CiviCRM 5.13.7
+
+Released November 20, 2019
+
+- **[Security advisories](release-notes/5.13.7.md#security)**
+- **[Credits](release-notes/5.13.7.md#credits)**
+
+## CiviCRM 5.13.6
+
+Released June 17, 2019
+
+- **[Synopsis](release-notes/5.13.6.md#synopsis)**
+- **[Bugs resolved](release-notes/5.13.6.md#bugs)**
+- **[Credits](release-notes/5.13.6.md#credits)**
+- **[Feedback](release-notes/5.13.6.md#feedback)**
+
 ## CiviCRM 5.13.5
 
 Released May 29, 2019
