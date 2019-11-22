@@ -786,7 +786,19 @@ class CRM_Contact_Form_Search extends CRM_Core_Form_Search {
     }
 
     $this->set('type', $this->_action);
-    $this->set('formValues', $this->_formValues);
+    // Duplicate the formValues array and remove any LIKE handling for text fields.
+    $qfFormValues = $this->_formValues;
+    foreach($this->_formValues as $field => $values) {
+      if (is_array($values) && !empty($values['LIKE'])) {
+        if (Civi::Settings()->get('includeWildCardInName')) {
+          $qfFormValues[$field] = substr($values['LIKE'], 1, -1);
+        }
+        else {
+          $qfFormValues[$field] = $values['LIKE'];
+        }
+      }
+    }
+    $this->set('formValues', $qfFormValues);
     $this->set('queryParams', $this->_params);
     $this->set('returnProperties', $this->_returnProperties);
 
