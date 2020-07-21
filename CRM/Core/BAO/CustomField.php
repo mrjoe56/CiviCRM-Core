@@ -1253,14 +1253,15 @@ class CRM_Core_BAO_CustomField extends CRM_Core_DAO_CustomField {
     if (self::isSerialized($customField) && $value) {
       $customOption = CRM_Core_BAO_CustomOption::getCustomOption($customFieldId, FALSE);
       $defaults[$elementName] = [];
-      $checkedValue = CRM_Utils_Array::explodePadded($value);
-      foreach ($customOption as $val) {
-        if (in_array($val['value'], $checkedValue)) {
-          if ($customField->html_type == 'CheckBox') {
-            $defaults[$elementName][$val['value']] = 1;
-          }
-          else {
-            $defaults[$elementName][$val['value']] = $val['value'];
+      if ( $checkedValue = CRM_Utils_Array::explodePadded($value) ) {
+        foreach ($customOption as $val) {
+          if (in_array($val['value'], $checkedValue)) {
+            if ($customField->html_type == 'CheckBox') {
+              $defaults[$elementName][$val['value']] = 1;
+            }
+            else {
+              $defaults[$elementName][$val['value']] = $val['value'];
+            }
           }
         }
       }
