@@ -663,6 +663,8 @@ function civicrm_api3_job_cleanup($params) {
   if ($wordRplc) {
     CRM_Core_BAO_WordReplacement::rebuild();
   }
+
+  return civicrm_api3_create_success();
 }
 
 /**
