@@ -1,6 +1,5 @@
 <?php
 
-require_once 'CRM/Core/Page.php';
 
 /**
  * An example page which queues several tasks and then executes them
