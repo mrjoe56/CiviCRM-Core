@@ -2045,14 +2045,9 @@ ORDER BY civicrm_custom_group.weight,
       'groupName' => 'postal_greeting',
     ];
     CRM_Core_OptionGroup::lookupValues($submitted, $names, TRUE);
-    // fix custom fields so they're edible by createProfileContact()
-    $cFields = self::getCustomFieldMetadata($contactType);
 
-    if (!isset($submitted)) {
-      $submitted = [];
-    }
     foreach ($submitted as $key => $value) {
-      [$cFields, $submitted] = self::processCustomFields($mainId, $key, $cFields, $submitted, $value);
+      [$cFields, $submitted] = self::processCustomFields($mainId, $key, $contactType, $submitted ?? [], $value);
     }
 
     // move view only custom fields CRM-5362
@@ -2464,14 +2459,16 @@ ORDER BY civicrm_custom_group.weight,
    *
    * @param int $mainId
    * @param string $key
-   * @param array $cFields
+   * @param string $contactType
    * @param array $submitted
    * @param mixed $value
    *
    * @return array
    * @throws \CRM_Core_Exception
    */
-  protected static function processCustomFields($mainId, $key, $cFields, $submitted, $value) {
+  protected static function processCustomFields($mainId, $key, $contactType, $submitted, $value) {
+    // fix custom fields so they're edible by createProfileContact()
+    $cFields = self::getCustomFieldMetadata($contactType);
     if (substr($key, 0, 7) === 'custom_') {
       $fid = (int) substr($key, 7);
       if (empty($cFields[$fid])) {
