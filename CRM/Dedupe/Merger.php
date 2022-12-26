@@ -2620,7 +2620,7 @@ ORDER BY civicrm_custom_group.weight,
   protected static function getCustomFieldMetadata($contactType) {
     $treeCache = [];
     if (!array_key_exists($contactType, $treeCache)) {
-      $treeCache[$contactType] = CRM_Core_BAO_CustomGroup::getTree(
+      $treeCache[$contactType] = self::getTree(
         $contactType,
         NULL,
         NULL,
