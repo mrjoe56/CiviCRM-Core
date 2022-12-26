@@ -1699,9 +1699,6 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
    *   api - through which it is properly tested - so can be refactored with some comfort.)
    * @param bool|int $checkPermission
    *   Either a CRM_Core_Permission constant or FALSE to disable checks
-   * @param string|int $singleRecord
-   *   holds 'new' or id if view/edit/copy form for a single record is being loaded.
-   * @param bool $showPublicOnly
    *
    * @return array
    *   Custom field 'tree'.
@@ -1727,10 +1724,9 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
     $fromCache = TRUE,
     $onlySubType = NULL,
     $returnAll = FALSE,
-    $checkPermission = CRM_Core_Permission::EDIT,
-    $singleRecord = NULL,
-    $showPublicOnly = FALSE
+    $checkPermission = CRM_Core_Permission::EDIT
   ) {
+
     if ($checkPermission === TRUE) {
       CRM_Core_Error::deprecatedWarning('Unexpected TRUE passed to CustomGroup::getTree $checkPermission param.');
       $checkPermission = CRM_Core_Permission::EDIT;
@@ -1898,10 +1894,6 @@ WHERE civicrm_custom_group.is_active = 1
         );
     }
 
-    if ($showPublicOnly && $is_public_version) {
-      $strWhere .= "AND civicrm_custom_group.is_public = 1";
-    }
-
     $orderBy = "
 ORDER BY civicrm_custom_group.weight,
          civicrm_custom_group.title,
@@ -1944,7 +1936,7 @@ ORDER BY civicrm_custom_group.weight,
     // add info to groupTree
 
     if (isset($groupTree['info']) && !empty($groupTree['info']) &&
-      !empty($groupTree['info']['tables']) && $singleRecord != 'new'
+      !empty($groupTree['info']['tables'])
     ) {
       $select = $from = $where = [];
       $groupTree['info']['where'] = NULL;
@@ -1978,7 +1970,7 @@ ORDER BY civicrm_custom_group.weight,
       }
       $multipleFieldTablesWithEntityData = array_keys($entityMultipleSelectClauses);
       if (!empty($multipleFieldTablesWithEntityData)) {
-        CRM_Core_BAO_CustomGroup::buildEntityTreeMultipleFields($groupTree, $entityID, $entityMultipleSelectClauses, $multipleFieldTablesWithEntityData, $singleRecord);
+        CRM_Core_BAO_CustomGroup::buildEntityTreeMultipleFields($groupTree, $entityID, $entityMultipleSelectClauses, $multipleFieldTablesWithEntityData, NULL);
       }
 
     }
